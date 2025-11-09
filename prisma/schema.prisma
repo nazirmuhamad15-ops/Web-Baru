@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  password    String
+  role        Role     @default(CUSTOMER)
+  phone       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  bookings    Booking[]
+  
+  @@map("users")
+}
+
+model Route {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  duration    Int      // in minutes
+  difficulty  String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  bookings    Booking[]
+  dailyCapacities DailyCapacity[]
+  
+  @@map("routes")
+}
+
+model DailyCapacity {
+  id          String   @id @default(cuid())
+  routeId     String
+  date        DateTime @db.Date // PostgreSQL date type
+  maxCapacity Int
+  currentBookings Int @default(0)
+  version     Int      @default(0) // For optimistic locking
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  route       Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  bookings    Booking[]
+  
+  @@unique([routeId, date])
+  @@map("daily_capacities")
+}
+
+model Booking {
+  id            String    @id @default(cuid())
+  userId        String
+  routeId       String
+  dailyCapacityId String
+  bookingDate   DateTime  @db.Date // PostgreSQL date type
+  numberOfPeople Int
+  totalPrice    Float
+  status        BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  notes         String?
+  version       Int       @default(0) // For optimistic locking
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route         Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  dailyCapacity DailyCapacity @relation(fields: [dailyCapacityId], references: [id], onDelete: Cascade)
+  
+  @@map("bookings")
+}
+
+model CMSSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  type        String   @default("text") // text, image, boolean, number
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("cms_settings")
+}
+
+model Gallery {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String
+  thumbnailUrl String?
+  category    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("gallery")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  CUSTOMER
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+}

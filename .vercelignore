@@ -1,0 +1,12 @@
+node_modules
+.next
+.env.local
+.env*.local
+dev.log
+server.log
+*.log
+.DS_Store
+*.pem
+db/
+prisma/db/
+
